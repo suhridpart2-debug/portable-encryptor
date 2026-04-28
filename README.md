@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portable Encryptor 🛡️
 
-## Getting Started
+**Portable Encryptor** is a premium, high-security encryption system designed for ultimate privacy. It uses a **Zero-Knowledge Architecture**, ensuring that your files are encrypted client-side and your keys never leave your device.
 
-First, run the development server:
+This project consists of a modern **Next.js Web Interface** and a powerful **Python CLI**.
+
+---
+
+## 🚀 Quick Start Guide
+
+Follow these steps to get the project running on your local machine.
+
+### 1. Prerequisites
+Make sure you have the following installed:
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Python](https://www.python.org/) (v3.9 or higher)
+- A [Supabase](https://supabase.com/) account (Free tier works perfectly)
+
+---
+
+### 2. Database Setup (Supabase)
+1. **Create Project**: Log in to Supabase and create a new project.
+2. **Database Schema**: 
+   - Go to the **SQL Editor** in your Supabase dashboard.
+   - Copy the contents of the `supabase_schema.sql` file from this repository.
+   - Paste and **Run** the query to create the necessary tables and security policies.
+3. **Get API Keys**:
+   - Go to **Project Settings > API**.
+   - Copy your `Project URL` and `anon public` key.
+
+---
+
+### 3. Environment Configuration
+Create a file named `.env.local` in the root directory of the project and add your Supabase credentials:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Running the Web Application (Frontend)
+Open your terminal in the project root and run:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Install dependencies
+npm install
 
-## Learn More
+# Start the development server
+npm run dev
+```
+The app will be available at [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 5. Running the Python CLI (Terminal)
+Open a new terminal window and navigate to the `cli` folder:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Go to the cli directory
+cd cli
 
-## Deploy on Vercel
+# Create a virtual environment (Recommended)
+python -m venv venv
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Activate the virtual environment
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Install CLI dependencies
+pip install -r requirements.txt
+
+# Run the CLI
+python main.py --help
+```
+
+---
+
+## ✨ Features
+
+- 🔐 **AES-256-GCM Encryption**: The gold standard for secure data encryption.
+- 🌐 **Client-Side Crypto**: All encryption happens in your browser. No plaintext data is ever sent to the cloud.
+- ⚡ **AI Integration**: Powered by Google Gemini for intelligent file analysis and summaries.
+- 📱 **Responsive Design**: Premium dark-mode UI built with Tailwind CSS and Framer Motion.
+- 🛠️ **Cross-Platform CLI**: Manage your encrypted files directly from your terminal.
+
+## 📁 Project Structure
+
+- `/src`: Next.js frontend application (App Router).
+- `/cli`: Python-based command-line encryption tools.
+- `supabase_schema.sql`: Database initialization script.
+- `.env.local`: Configuration for API keys (Ignored by Git).
+
+## 🔒 Security for Viva
+- **PBKDF2 Key Derivation**: Passwords are stretched using 100,000 iterations to prevent brute-force attacks.
+- **Zero-Knowledge**: The server only stores metadata. Your encryption keys stay with you.
+- **Authenticated Encryption**: AES-GCM ensures both confidentiality and integrity of your files.
+
+---
+
+## 📄 License
+This project is part of the Final Year PBL curriculum. Built for educational and security research purposes.
