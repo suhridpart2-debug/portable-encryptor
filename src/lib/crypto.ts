@@ -68,7 +68,7 @@ export async function encryptFile(file: File, password: string): Promise<Blob> {
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
 
-  return new Blob([combined], { type: 'application/octet-stream' });
+  return new Blob([combined as any], { type: 'application/octet-stream' });
 }
 
 /**
@@ -104,7 +104,7 @@ export async function decryptFile(encryptedBlob: Blob, password: string): Promis
  * Helper to download a file in the browser.
  */
 export function downloadFile(data: Uint8Array | Blob, fileName: string) {
-  const blob = data instanceof Blob ? data : new Blob([data]);
+  const blob = data instanceof Blob ? data : new Blob([data as any]);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

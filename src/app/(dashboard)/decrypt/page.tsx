@@ -61,7 +61,7 @@ export default function DecryptPage() {
 
   const uint8ArrayToBase64 = (bytes: Uint8Array): Promise<string> => {
     return new Promise((resolve) => {
-      const blob = new Blob([bytes]);
+      const blob = new Blob([bytes as any]);
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
