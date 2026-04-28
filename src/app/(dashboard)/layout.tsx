@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Shield, Bell, User } from "lucide-react";
+import { Shield, Bell, User, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [user, setUser] = useState<any>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,16 +33,24 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#fdfdfd]">
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      <div className="ml-64">
+      <div className="lg:ml-64 transition-all duration-300">
         {/* Dashboard Header */}
-        <header className="h-16 border-b border-border bg-white flex items-center justify-between px-8 sticky top-0 z-40">
-          <h2 className="font-semibold text-lg">
-            {user.email?.split('@')[0].charAt(0).toUpperCase() + user.email?.split('@')[0].slice(1)}&apos;s Vault
-          </h2>
-          
+        <header className="h-16 border-b border-border bg-white flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 text-muted-foreground hover:bg-secondary rounded-lg transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h2 className="font-semibold text-lg truncate max-w-[200px] lg:max-w-none">
+              {user.email?.split('@')[0].charAt(0).toUpperCase() + user.email?.split('@')[0].slice(1)}&apos;s Vault
+            </h2>
+          </div>
+          
+          <div className="flex items-center gap-2 lg:gap-4">
             <button 
               onClick={() => toast.success("No new notifications")}
               className="p-2 text-muted-foreground hover:bg-secondary rounded-lg transition-colors relative"
@@ -57,7 +66,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="p-8">
+        <main className="p-4 lg:p-8">
           {children}
         </main>
       </div>

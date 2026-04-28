@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as pdfjs from "pdfjs-dist";
 
 // Use a stable worker for visual rendering
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 export default function DecryptPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -41,6 +41,8 @@ export default function DecryptPage() {
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
   const [isChatting, setIsChatting] = useState(false);
+  const [initialBase64, setInitialBase64] = useState<string | null>(null);
+  const [initialMimeType, setInitialMimeType] = useState<string | null>(null);
 
   const handleDecrypt = async () => {
     if (!file || !password) return;
@@ -87,7 +89,6 @@ export default function DecryptPage() {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       
-      // Fix for Typescript error: add canvas to the render parameters
       await page.render({ 
         canvasContext: context, 
         viewport: viewport
@@ -117,6 +118,9 @@ export default function DecryptPage() {
         base64Data = await uint8ArrayToBase64(decryptedData);
       }
       
+      setInitialBase64(base64Data);
+      setInitialMimeType(mimeType === 'application/pdf' ? 'image/jpeg' : mimeType);
+
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,13 +154,13 @@ export default function DecryptPage() {
     setChatMessage("");
 
     try {
-      const mimeType = getMimeType(file!.name);
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           history: newHistory,
-          mimeType: mimeType === 'application/pdf' ? 'image/jpeg' : mimeType,
+          base64Data: initialBase64,
+          mimeType: initialMimeType,
           fileName: file!.name.replace('.enc', '')
         })
       });
