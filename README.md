@@ -36,7 +36,7 @@ Create a file named `.env.local` in the root directory of the project and add yo
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-XAI_API_KEY=your_xai_grok_key_here
+GROQ_API_KEY=your_groq_key_here
 ```
 
 ---
@@ -84,7 +84,7 @@ python main.py --help
 
 - 🔐 **AES-256-GCM Encryption**: The gold standard for secure data encryption.
 - 🌐 **Client-Side Crypto**: All encryption happens in your browser. No plaintext data is ever sent to the cloud.
-- ⚡ **Grok AI Integration**: Powered by xAI Grok-Vision for intelligent, unrestricted file analysis.
+- ⚡ **AI Analysis**: Powered by Groq (Llama 4 Vision) for ultra-fast, intelligent file summaries.
 - 📱 **Responsive Design**: Premium dark-mode UI built with Tailwind CSS and Framer Motion.
 - 🛠️ **Cross-Platform CLI**: Manage your encrypted files directly from your terminal.
 

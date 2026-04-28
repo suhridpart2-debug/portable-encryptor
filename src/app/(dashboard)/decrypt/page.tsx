@@ -20,6 +20,10 @@ import {
 import { decryptFile, downloadFile } from "@/lib/crypto";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import * as pdfjs from "pdfjs-dist";
+
+// Use a stable worker for visual rendering
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export default function DecryptPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -31,7 +35,14 @@ export default function DecryptPage() {
   const [showSummaryOption, setShowSummaryOption] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryError, setSummaryError] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Consent & Chat States
+  const [hasConsented, setHasConsented] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
+  const [isChatting, setIsChatting] = useState(false);
 
   const handleDecrypt = async () => {
     if (!file || !password) return;
@@ -71,24 +82,48 @@ export default function DecryptPage() {
     });
   };
 
+  const getPDFSnapshot = async (data: Uint8Array): Promise<string> => {
+    try {
+      const loadingTask = pdfjs.getDocument({ data });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      await page.render({ canvasContext: context!, viewport }).promise;
+      return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    } catch (err) {
+      console.error("PDF Snapshot Error:", err);
+      return "";
+    }
+  };
+
   const handleSummarize = async () => {
     if (!decryptedData || !file) return;
     
     setIsSummarizing(true);
+    setSummaryError(false);
     setShowSummaryOption(false);
     
     try {
       const mimeType = getMimeType(file.name);
-      
-      // Efficiently get Base64
-      const base64Data = await uint8ArrayToBase64(decryptedData);
+      let base64Data = "";
+
+      if (mimeType === 'application/pdf') {
+        base64Data = await getPDFSnapshot(decryptedData);
+        if (!base64Data) throw new Error("Could not capture PDF snapshot");
+      } else {
+        base64Data = await uint8ArrayToBase64(decryptedData);
+      }
       
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          base64Data, 
-          mimeType, 
+          base64Data,
+          mimeType: mimeType === 'application/pdf' ? 'image/jpeg' : mimeType,
           fileName: file.name.replace('.enc', '') 
         })
       });
@@ -97,13 +132,48 @@ export default function DecryptPage() {
       if (data.error) throw new Error(data.error);
       
       setSummary(data.summary);
+      setChatHistory([{ role: 'assistant', content: data.summary }]);
       toast.success("AI Analysis Complete");
     } catch (err: any) {
       console.error(err);
       toast.error("AI Analysis failed: " + err.message);
-      setSummary("Could not analyze file content. This might be due to an unsupported file format or API limitations.");
+      setSummary("Could not analyze file content visually. Falling back to metadata summary.");
+      setSummaryError(true);
     } finally {
       setIsSummarizing(false);
+    }
+  };
+
+  const handleChat = async () => {
+    if (!chatMessage || !decryptedData || isChatting) return;
+    
+    setIsChatting(true);
+    const newHistory = [...chatHistory, { role: 'user', content: chatMessage }];
+    setChatHistory(newHistory);
+    const currentMsg = chatMessage;
+    setChatMessage("");
+
+    try {
+      const mimeType = getMimeType(file!.name);
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          history: newHistory,
+          mimeType: mimeType === 'application/pdf' ? 'image/jpeg' : mimeType,
+          fileName: file!.name.replace('.enc', '')
+        })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      
+      setChatHistory([...newHistory, { role: 'assistant', content: data.summary }]);
+      setSummary(data.summary);
+    } catch (err: any) {
+      toast.error("Chat failed: " + err.message);
+    } finally {
+      setIsChatting(false);
     }
   };
 
@@ -132,7 +202,11 @@ export default function DecryptPage() {
     setPassword("");
     setDecryptedData(null);
     setSummary(null);
+    setSummaryError(false);
     setShowSummaryOption(false);
+    setHasConsented(false);
+    setChatHistory([]);
+    setChatMessage("");
   };
 
   return (
@@ -213,14 +287,38 @@ export default function DecryptPage() {
                           Multi-modal AI Analysis
                         </div>
                         <p className="text-sm text-slate-600 mb-4">
-                          Our AI can now "read" your PDF or "see" your image to provide a real content summary.
+                          Our AI can now analyze your secure files and provide a real content summary.
                         </p>
                         <div className="flex gap-3">
-                          <Button onClick={handleSummarize} className="flex-1 premium-gradient border-none">
+                          <Button onClick={() => setHasConsented(true)} className="flex-1 premium-gradient border-none">
                             Analyze Content
                           </Button>
-                          <Button variant="outline" onClick={() => setShowSummaryOption(false)} className="flex-1">
+                          <Button variant="outline" onClick={() => { setShowSummaryOption(false); setHasConsented(false); }} className="flex-1">
                             Just Download
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {hasConsented && !summary && !isSummarizing && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-amber-50 p-6 rounded-2xl border border-amber-200 mt-6 text-left"
+                      >
+                        <div className="flex items-center gap-2 mb-3 text-amber-700 font-bold">
+                          <AlertCircle className="w-5 h-5" />
+                          Privacy Consent Required
+                        </div>
+                        <p className="text-sm text-amber-800 mb-6 leading-relaxed">
+                          By proceeding, you agree that your decrypted file content will be securely processed by our AI for analysis. Data is not stored, but consent is required for the hand-off.
+                        </p>
+                        <div className="flex gap-3">
+                          <Button onClick={handleSummarize} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white border-none">
+                            I Consent, Proceed
+                          </Button>
+                          <Button variant="outline" onClick={() => { setHasConsented(false); setShowSummaryOption(false); }} className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-100">
+                            Reject & Download
                           </Button>
                         </div>
                       </motion.div>
@@ -261,16 +359,47 @@ export default function DecryptPage() {
                             {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                           </Button>
                         </div>
-                        <Card className="bg-white border-primary/10 border-l-4 border-l-emerald-500">
-                          <CardContent className="p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                        <Card className="bg-white border-primary/10 border-l-4 border-l-emerald-500 shadow-sm">
+                          <CardContent className="p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line max-h-60 overflow-y-auto">
                             {summary}
                           </CardContent>
                         </Card>
+
+                        {/* AI Chat Interaction */}
+                        <div className="space-y-3 pt-2">
+                          <div className="relative">
+                            <Input 
+                              placeholder="Ask a follow-up or give a command (e.g., 'Make it shorter')..."
+                              value={chatMessage}
+                              onChange={(e) => setChatMessage(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleChat()}
+                              className="pr-12 h-12 bg-white border-primary/20 focus-visible:ring-primary"
+                              disabled={isChatting}
+                            />
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="absolute right-1 top-1 h-10 w-10 text-primary hover:bg-primary/10"
+                              onClick={handleChat}
+                              disabled={isChatting || !chatMessage}
+                            >
+                              {isChatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+
                         <div className="flex gap-3 pt-2">
-                          <Button onClick={handleDownload} className="flex-1 premium-gradient border-none">
-                            <Download className="mr-2 h-4 w-4" />
-                            Download File
-                          </Button>
+                          {summaryError ? (
+                            <Button onClick={handleSummarize} className="flex-1 premium-gradient border-none">
+                              <RefreshCcw className="mr-2 h-4 w-4" />
+                              Retry Analysis
+                            </Button>
+                          ) : (
+                            <Button onClick={handleDownload} className="flex-1 premium-gradient border-none">
+                              <Download className="mr-2 h-4 w-4" />
+                              Download File
+                            </Button>
+                          )}
                           <Button onClick={reset} className="flex-1" variant="outline">
                             New Decryption
                           </Button>
