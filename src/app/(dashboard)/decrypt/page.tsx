@@ -67,7 +67,7 @@ export default function DecryptPage() {
 
   const uint8ArrayToBase64 = (bytes: Uint8Array): Promise<string> => {
     return new Promise((resolve) => {
-      const blob = new Blob([bytes]);
+      const blob = new Blob([bytes as any]);
       const reader = new FileReader();
       reader.onload = () => resolve((reader.result as string).split(',')[1]);
       reader.readAsDataURL(blob);
@@ -76,7 +76,7 @@ export default function DecryptPage() {
 
   const getPDFSnapshot = async (data: Uint8Array): Promise<string> => {
     try {
-      const loadingTask = pdfjs.getDocument({ data });
+      const loadingTask = pdfjs.getDocument({ data: data as any });
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1.5 });
