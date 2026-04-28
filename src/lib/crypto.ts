@@ -25,7 +25,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   const encoder = new TextEncoder();
   const passwordKey = await window.crypto.subtle.importKey(
     'raw',
-    encoder.encode(password),
+    encoder.encode(password) as any,
     'PBKDF2',
     false,
     ['deriveKey']
@@ -34,7 +34,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as any,
       iterations: PBKDF2_ITERATIONS,
       hash: 'SHA-256',
     },
@@ -56,7 +56,7 @@ export async function encryptFile(file: File, password: string): Promise<Blob> {
 
   const fileData = await file.arrayBuffer();
   const ciphertext = await window.crypto.subtle.encrypt(
-    { name: ALGORITHM, iv },
+    { name: ALGORITHM, iv: iv as any },
     key,
     fileData
   );
@@ -90,7 +90,7 @@ export async function decryptFile(encryptedBlob: Blob, password: string): Promis
 
   try {
     const decrypted = await window.crypto.subtle.decrypt(
-      { name: ALGORITHM, iv },
+      { name: ALGORITHM, iv: iv as any },
       key,
       ciphertext
     );
