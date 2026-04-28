@@ -372,7 +372,7 @@ export default function DecryptPage() {
                               disabled={isChatting}
                             />
                             <Button 
-                              size="icon" 
+                              size="sm" 
                               variant="ghost" 
                               className="absolute right-2 top-2 h-10 w-10 text-indigo-600 hover:bg-indigo-50 rounded-xl"
                               onClick={handleChat}
